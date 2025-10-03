@@ -22,8 +22,26 @@
       },
       "edgeToEdgeEnabled": true
     },
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#FF5A5F",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "Elvira Hotel"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FF5A5F",
+          "defaultChannel": "default"
+        }
+      ]
+    ]
   }
 }
