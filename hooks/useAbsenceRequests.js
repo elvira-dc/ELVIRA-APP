@@ -18,8 +18,6 @@ export const useAbsenceRequests = (staffId, hotelId) => {
       setLoading(true);
       setError(null);
 
-      console.log("🗓️ Fetching absence requests for staff_id:", staffId);
-
       const { data, error: fetchError } = await supabase
         .from("absence_requests")
         .select("*")
@@ -190,8 +188,6 @@ export const useAbsenceRequests = (staffId, hotelId) => {
         console.log("Removed request with ID:", requestId);
         return filtered;
       });
-
-      console.log("=== DELETE OPERATION COMPLETED ===");
       return true;
     } catch (err) {
       console.error("Error in deleteAbsenceRequest:", err);

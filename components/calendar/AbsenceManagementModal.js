@@ -120,7 +120,7 @@ export const AbsenceManagementModal = ({
               console.log("onDelete function:", typeof onDelete);
 
               const success = await onDelete(request.id);
-              console.log("Delete operation result:", success);
+
 
               if (success !== false) {
                 // Consider undefined or true as success
@@ -148,19 +148,20 @@ export const AbsenceManagementModal = ({
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
+    if (isNaN(date)) return "";
     return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      year: "2-digit",
     });
   };
 
   const formatDateRange = () => {
     const startDate = new Date(request.start_date);
     const endDate = new Date(request.end_date);
-
+    if (isNaN(startDate) || isNaN(endDate)) return "";
     if (startDate.toDateString() === endDate.toDateString()) {
       return formatDate(request.start_date);
     } else {
@@ -224,6 +225,18 @@ export const AbsenceManagementModal = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Date Range</Text>
               <Text style={styles.dateRange}>{formatDateRange()}</Text>
+              <Text style={styles.totalDays}>
+                {(() => {
+                  const startDate = new Date(request.start_date);
+                  const endDate = new Date(request.end_date);
+                  if (isNaN(startDate) || isNaN(endDate)) return "";
+                  // Calculate difference in days (inclusive)
+                  const diff =
+                    Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) +
+                    1;
+                  return `Total days requested: ${diff}`;
+                })()}
+              </Text>
             </View>
 
             {/* Request Details */}
@@ -340,6 +353,12 @@ export const AbsenceManagementModal = ({
 };
 
 const styles = StyleSheet.create({
+  totalDays: {
+    fontSize: 14,
+    color: "#8E8E93",
+    marginTop: 2,
+    marginBottom: 2,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

@@ -2,105 +2,96 @@ import { useState, useEffect } from "react";
 import { useNotifications } from "./useNotifications";
 
 /**
- * Custom hook for managing WhatsApp-style message notifications
+ * Custom hook for managing real message conversations
  * @returns {object} Messaging state and functions
  */
 export const useMessaging = () => {
-  const [messages, setMessages] = useState([]);
+  const [conversations, setConversations] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { sendLocalNotification } = useNotifications();
 
-  // Sample conversations for demo
-  const sampleConversations = [
-    {
-      id: 1,
-      name: "Hotel Manager",
-      lastMessage: "Don't forget about the staff meeting tomorrow",
-      timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-      unread: true,
-      avatar: null,
-    },
-    {
-      id: 2,
-      name: "Housekeeping Team",
-      lastMessage: "Room 301 needs urgent cleaning",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-      unread: true,
-      avatar: null,
-    },
-    {
-      id: 3,
-      name: "Reception",
-      lastMessage: "Guest complaint about room 205",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      unread: false,
-      avatar: null,
-    },
-  ];
-
   useEffect(() => {
-    // Initialize with sample data
-    setMessages(sampleConversations);
-    const unreadMessages = sampleConversations.filter(
-      (msg) => msg.unread
-    ).length;
-    setUnreadCount(unreadMessages);
-
-    // Simulate receiving new messages every 30 seconds for demo
-    const messageInterval = setInterval(() => {
-      simulateNewMessage();
-    }, 30000);
-
-    return () => clearInterval(messageInterval);
+    // Load conversations from storage or database
+    loadConversations();
   }, []);
 
   /**
-   * Simulate receiving a new message (like WhatsApp)
+   * Load conversations from local storage or database
    */
-  const simulateNewMessage = async () => {
-    const sampleMessages = [
-      { from: "Hotel Manager", text: "Please check the front desk schedule" },
-      {
-        from: "Maintenance",
-        text: "Air conditioning in room 102 needs repair",
-      },
-      { from: "Kitchen Staff", text: "Room service request for room 304" },
-      {
-        from: "Security",
-        text: "Late night guest check-in requires attention",
-      },
-      { from: "Housekeeping", text: "Extra towels needed for room 208" },
-    ];
+  const loadConversations = async () => {
+    try {
+      // For now, start with empty conversations
+      // In the future, this would load from a database or local storage
+      setConversations([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error loading conversations:", error);
+    }
+  };
 
-    const randomMessage =
-      sampleMessages[Math.floor(Math.random() * sampleMessages.length)];
+  /**
+   * Start a new conversation with a contact
+   * @param {Object} contact - Contact object from staff data
+   */
+  const startNewConversation = (contact) => {
+    const existingConversation = conversations.find(
+      (conv) => conv.contactId === contact.id
+    );
 
-    // Send WhatsApp-style notification
-    await sendLocalNotification(`${randomMessage.from}`, randomMessage.text, {
-      type: "new_message",
-      sender: randomMessage.from,
-      timestamp: new Date().toISOString(),
-    });
+    if (existingConversation) {
+      // Return existing conversation ID
+      return existingConversation.id;
+    }
 
-    // Update messages list
-    const newMessage = {
+    // Create new conversation
+    const newConversation = {
       id: Date.now(),
-      name: randomMessage.from,
-      lastMessage: randomMessage.text,
-      timestamp: new Date(),
-      unread: true,
-      avatar: null,
+      contactId: contact.id,
+      contactName: contact.name,
+      contactPosition: contact.position,
+      contactDepartment: contact.department,
+      avatar_url: contact.avatar_url, // Use avatar_url to match database field
+      lastMessage: null,
+      lastMessageTime: null,
+      unread: false,
+      messages: [], // Array of individual messages
     };
 
-    setMessages((prevMessages) => {
-      // Remove existing conversation with same sender and add new one at top
-      const filteredMessages = prevMessages.filter(
-        (msg) => msg.name !== randomMessage.from
-      );
-      return [newMessage, ...filteredMessages];
-    });
+    setConversations((prev) => [newConversation, ...prev]);
+    return newConversation.id;
+  };
 
-    setUnreadCount((prev) => prev + 1);
+  /**
+   * Send a message in a conversation
+   * @param {number} conversationId - ID of the conversation
+   * @param {string} messageText - Text of the message
+   * @param {string} messageType - Type of message (text, image, voice)
+   */
+  const sendMessage = (conversationId, messageText, messageType = "text") => {
+    const timestamp = new Date();
+    const newMessage = {
+      id: Date.now(),
+      text: messageText,
+      type: messageType,
+      timestamp: timestamp,
+      isUser: true, // This message is from the current user
+    };
+
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (conv.id === conversationId) {
+          return {
+            ...conv,
+            lastMessage: messageText,
+            lastMessageTime: timestamp,
+            messages: [...conv.messages, newMessage],
+          };
+        }
+        return conv;
+      })
+    );
+
+    return newMessage.id;
   };
 
   /**
@@ -108,9 +99,9 @@ export const useMessaging = () => {
    * @param {number} conversationId - ID of the conversation to mark as read
    */
   const markAsRead = (conversationId) => {
-    setMessages((prevMessages) =>
-      prevMessages.map((msg) =>
-        msg.id === conversationId ? { ...msg, unread: false } : msg
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === conversationId ? { ...conv, unread: false } : conv
       )
     );
 
@@ -118,41 +109,96 @@ export const useMessaging = () => {
   };
 
   /**
-   * Mark all messages as read
+   * Mark all conversations as read
    */
   const markAllAsRead = () => {
-    setMessages((prevMessages) =>
-      prevMessages.map((msg) => ({ ...msg, unread: false }))
+    setConversations((prev) =>
+      prev.map((conv) => ({ ...conv, unread: false }))
     );
     setUnreadCount(0);
   };
 
   /**
-   * Send a new message notification
-   * @param {string} recipientName - Name of the recipient
-   * @param {string} messageText - Text of the message
+   * Get conversation by ID
+   * @param {number} conversationId - ID of the conversation
+   * @returns {Object|null} Conversation object or null
    */
-  const sendMessageNotification = async (recipientName, messageText) => {
-    await sendLocalNotification(
-      `Message sent to ${recipientName}`,
-      messageText,
-      {
-        type: "message_sent",
-        recipient: recipientName,
-        timestamp: new Date().toISOString(),
-      }
+  const getConversationById = (conversationId) => {
+    return conversations.find((conv) => conv.id === conversationId) || null;
+  };
+
+  /**
+   * Delete a conversation
+   * @param {number} conversationId - ID of the conversation to delete
+   */
+  const deleteConversation = (conversationId) => {
+    setConversations((prev) =>
+      prev.filter((conv) => conv.id !== conversationId)
     );
+    setUnreadCount((prev) => {
+      const conversation = conversations.find(
+        (conv) => conv.id === conversationId
+      );
+      return conversation && conversation.unread ? Math.max(0, prev - 1) : prev;
+    });
+  };
+
+  /**
+   * Simulate receiving a message (for testing)
+   * @param {number} conversationId - ID of the conversation
+   * @param {string} messageText - Text of the received message
+   */
+  const simulateReceivedMessage = (conversationId, messageText) => {
+    const timestamp = new Date();
+    const newMessage = {
+      id: Date.now(),
+      text: messageText,
+      type: "text",
+      timestamp: timestamp,
+      isUser: false, // This message is from the other person
+    };
+
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (conv.id === conversationId) {
+          const updatedConv = {
+            ...conv,
+            lastMessage: messageText,
+            lastMessageTime: timestamp,
+            unread: true,
+            messages: [...conv.messages, newMessage],
+          };
+
+          // Send notification
+          sendLocalNotification(conv.contactName, messageText, {
+            type: "new_message",
+            conversationId: conversationId,
+            timestamp: timestamp.toISOString(),
+          });
+
+          return updatedConv;
+        }
+        return conv;
+      })
+    );
+
+    setUnreadCount((prev) => prev + 1);
+    return newMessage.id;
   };
 
   return {
     // State
-    messages,
+    conversations,
     unreadCount,
 
     // Functions
+    startNewConversation,
+    sendMessage,
     markAsRead,
     markAllAsRead,
-    sendMessageNotification,
-    simulateNewMessage,
+    getConversationById,
+    deleteConversation,
+    simulateReceivedMessage,
+    loadConversations,
   };
 };

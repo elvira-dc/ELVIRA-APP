@@ -14,9 +14,12 @@ import { AuthProvider, useAuth } from "./hooks/useAuth";
 import MessagesScreen from "./screens/MessagesScreen";
 import ConversationScreen from "./screens/ConversationScreen";
 import RoomsScreen from "./screens/RoomsScreen";
+import RoomDetailsScreen from "./screens/RoomDetailsScreen";
+import MyTasksScreen from "./screens/MyTasksScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LoginScreen from "./screens/LoginScreen";
+import GuestConversationScreen from "./screens/GuestConversationScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -50,22 +53,33 @@ const AppContent = () => {
   }
 
   // Show main app if user is authenticated
+  const RoomsStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="RoomsScreen" component={RoomsScreen} />
+      <Stack.Screen name="RoomDetailsScreen" component={RoomDetailsScreen} />
+      <Stack.Screen
+        name="GuestConversationScreen"
+        component={GuestConversationScreen}
+      />
+    </Stack.Navigator>
+  );
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-
           if (route.name === "Messages") {
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           } else if (route.name === "Rooms") {
             iconName = focused ? "bed" : "bed-outline";
+          } else if (route.name === "My Tasks") {
+            iconName = focused ? "clipboard" : "clipboard-outline";
           } else if (route.name === "Calendar") {
             iconName = focused ? "calendar" : "calendar-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
           }
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: "#FF5A5F",
@@ -95,30 +109,27 @@ const AppContent = () => {
       <Tab.Screen
         name="Messages"
         component={MessagesStack}
-        options={{
-          tabBarLabel: "Messages",
-        }}
+        options={{ tabBarLabel: "Messages" }}
       />
       <Tab.Screen
         name="Rooms"
-        component={RoomsScreen}
-        options={{
-          tabBarLabel: "Rooms",
-        }}
+        component={RoomsStack}
+        options={{ tabBarLabel: "Rooms" }}
+      />
+      <Tab.Screen
+        name="My Tasks"
+        component={MyTasksScreen}
+        options={{ tabBarLabel: "My Tasks" }}
       />
       <Tab.Screen
         name="Calendar"
         component={CalendarScreen}
-        options={{
-          tabBarLabel: "Calendar",
-        }}
+        options={{ tabBarLabel: "Calendar" }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{
-          tabBarLabel: "Profile",
-        }}
+        options={{ tabBarLabel: "Profile" }}
       />
     </Tab.Navigator>
   );

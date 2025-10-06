@@ -7,8 +7,10 @@ import {
   Text,
   Alert,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useImagePicker } from "../hooks/useImagePicker";
 import { useAuth } from "../hooks/useAuth";
 import { notifyWelcome } from "../utils/notificationService";
@@ -42,6 +44,7 @@ const ProfileScreen = () => {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const {
     staffData,
@@ -162,6 +165,53 @@ const ProfileScreen = () => {
     }
   };
 
+  // Load notification preference on component mount
+  useEffect(() => {
+    loadNotificationPreference();
+  }, []);
+
+  // Load notification preference from storage
+  const loadNotificationPreference = async () => {
+    try {
+      const storedPreference = await AsyncStorage.getItem(
+        "notifications_enabled"
+      );
+      if (storedPreference !== null) {
+        setNotificationsEnabled(JSON.parse(storedPreference));
+      }
+    } catch (error) {
+      console.error("Error loading notification preference:", error);
+      // Default to enabled if there's an error loading
+      setNotificationsEnabled(true);
+    }
+  };
+
+  // Handle notification toggle
+  const handleNotificationToggle = async (value) => {
+    try {
+      setNotificationsEnabled(value);
+      await AsyncStorage.setItem(
+        "notifications_enabled",
+        JSON.stringify(value)
+      );
+
+      Alert.alert(
+        "Notifications " + (value ? "Enabled" : "Disabled"),
+        value
+          ? "You will receive notifications for shifts, messages, and updates."
+          : "You will no longer receive push notifications.",
+        [{ text: "OK" }]
+      );
+
+      console.log("📱 Notification preference saved:", value);
+    } catch (error) {
+      console.error("Error saving notification preference:", error);
+      Alert.alert("Error", "Failed to save notification preference");
+      // Revert the toggle if saving failed
+      setNotificationsEnabled(!value);
+    }
+  };
+
   // Handle sign out
   const handleSignOut = () => {
     Alert.alert(
@@ -244,6 +294,36 @@ const ProfileScreen = () => {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
           </TouchableOpacity>
+
+          {/* Notifications Toggle */}
+          <View style={styles.menuButton}>
+            <View style={styles.menuRow}>
+              <Ionicons
+                name={
+                  notificationsEnabled
+                    ? "notifications-outline"
+                    : "notifications-off-outline"
+                }
+                size={24}
+                color="#FF5A5F"
+              />
+              <View style={styles.menuButtonContent}>
+                <Text style={styles.menuButtonText}>Notifications</Text>
+                <Text style={styles.menuButtonSubtext}>
+                  {notificationsEnabled
+                    ? "Receive push notifications"
+                    : "Push notifications disabled"}
+                </Text>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleNotificationToggle}
+                trackColor={{ false: "#E5E5EA", true: "#FF5A5F" }}
+                thumbColor={notificationsEnabled ? "#FFFFFF" : "#F4F3F4"}
+                ios_backgroundColor="#E5E5EA"
+              />
+            </View>
+          </View>
         </View>
 
         {staffLoading && (
@@ -319,6 +399,11 @@ const styles = StyleSheet.create({
   menuButtonContent: {
     flex: 1,
     marginLeft: 12,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
   },
   menuButtonText: {
     fontSize: 16,

@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,11 +21,78 @@ import { AbsenceList } from "../components/calendar/AbsenceList";
 import { AbsenceRequestModal } from "../components/calendar/AbsenceRequestModal";
 import { ShiftManagementModal } from "../components/calendar/ShiftManagementModal";
 import { AbsenceManagementModal } from "../components/calendar/AbsenceManagementModal";
+import { useStaffContacts } from "../hooks/useStaffContacts";
+import { AddShiftModal } from "../components/calendar/AddShiftModal";
 
 const CalendarScreen = () => {
   const { user } = useAuth();
   const { staffData } = useStaffData(user?.id);
+  const hotel_staff = staffData;
 
+  // Get all staff contacts for dropdown
+  const { contacts: staffContacts, loading: staffContactsLoading } =
+    useStaffContacts();
+
+  // Modal state
+  const [addShiftModalVisible, setAddShiftModalVisible] = useState(false);
+  const [selectedStaffIds, setSelectedStaffIds] = useState([]);
+
+  // Selected staff for calendar display
+  const [selectedStaffIdForCalendar, setSelectedStaffIdForCalendar] = useState(
+    staffData?.id
+  );
+
+  // Get selected staff name
+  const selectedStaff = staffContacts?.find(
+    (staff) => staff.id === selectedStaffIdForCalendar
+  );
+  const selectedStaffName = selectedStaff
+    ? `${selectedStaff.firstName} ${selectedStaff.lastName}`
+    : "";
+
+  // Check if user is Hotel Admin and Manager
+  const isAdminManager =
+    hotel_staff?.position === "Hotel Admin" &&
+    hotel_staff?.department === "Manager";
+
+  // Handler for people icon
+  const handlePeopleIconPress = () => {
+    setAddShiftModalVisible(true);
+  };
+
+  // Handler for selecting/deselecting staff in modal
+  const toggleStaffSelection = (staffId) => {
+    setSelectedStaffIds((prev) =>
+      prev.includes(staffId)
+        ? prev.filter((id) => id !== staffId)
+        : [...prev, staffId]
+    );
+  };
+
+  // Handler for confirming creation
+  const handleConfirmAddShift = () => {
+    // TODO: Implement shift calendar creation for selectedStaffIds
+    // After creating the shift, update the calendar to show the selected staff
+    if (selectedStaffIds.length > 0) {
+      setSelectedStaffIdForCalendar(selectedStaffIds[0]); // Select the first one
+    }
+    setAddShiftModalVisible(false);
+    setSelectedStaffIds([]);
+  };
+
+  // Handler for staff selection in header dropdown
+  const handleStaffSelectForCalendar = (staffId) => {
+    setSelectedStaffIdForCalendar(staffId);
+  };
+
+  // Map staff contacts to firstName/lastName
+  const staffList = (staffContacts || []).map((staff) => ({
+    id: staff.id,
+    firstName: staff.firstName,
+    lastName: staff.lastName,
+  }));
+
+  // Calendar logic - now dependent on selectedStaffIdForCalendar
   const {
     // State
     viewMode,
@@ -68,9 +136,12 @@ const CalendarScreen = () => {
     getAbsenceStatusColor,
     updateAbsenceRequest,
     deleteAbsenceRequest,
-  } = useCalendarLogic(staffData?.id, staffData?.hotel_id || "demo-hotel-1");
+  } = useCalendarLogic(
+    selectedStaffIdForCalendar,
+    staffData?.hotel_id || "demo-hotel-1"
+  );
 
-  // Staff schedules integration
+  // Staff schedules integration - now dependent on selectedStaffIdForCalendar
   const {
     schedules,
     loading: schedulesLoading,
@@ -81,7 +152,7 @@ const CalendarScreen = () => {
     formatShiftTime,
     getShiftTypeColor,
     getStatusColor,
-  } = useStaffSchedules(staffData?.id, user?.id);
+  } = useStaffSchedules(selectedStaffIdForCalendar, user?.id);
 
   // Filter schedules based on current view
   const { start: rangeStart, end: rangeEnd } = getCurrentDateRange();
@@ -110,6 +181,8 @@ const CalendarScreen = () => {
   // Expand/collapse state for sections
   const [shiftsExpanded, setShiftsExpanded] = useState(true);
   const [absenceExpanded, setAbsenceExpanded] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
+  const [isCalendarVisible, setIsCalendarVisible] = useState(true);
 
   const handleAbsencePress = (request) => {
     setSelectedAbsence(request);
@@ -173,32 +246,67 @@ const CalendarScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <CalendarHeader
-        viewMode={viewMode}
-        setViewMode={setViewMode}
         getDisplayTitle={getDisplayTitle}
         navigatePrevious={navigatePrevious}
         navigateNext={navigateNext}
+        showGrid={showGrid}
+        setShowGrid={setShowGrid}
+        isCalendarVisible={isCalendarVisible}
+        onToggleCalendarVisibility={() => setIsCalendarVisible((v) => !v)}
+        hotel_staff={hotel_staff}
+        onPeoplePress={handlePeopleIconPress}
+        staffList={staffList}
+        selectedStaffId={selectedStaffIdForCalendar}
+        onStaffSelect={handleStaffSelectForCalendar}
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <CalendarGrid
-          viewMode={viewMode}
-          calendarDays={generateCalendarDays()}
-          onDatePress={handleCustomDatePress}
-          onTodayPress={goToToday}
-          isToday={isToday}
-          isSameMonth={isSameMonth}
-          isStartDate={isStartDate}
-          isEndDate={isEndDate}
-          isDateInRange={isDateInRange}
-          getScheduleForDate={getScheduleForDate}
-          getShiftTypeColor={getShiftTypeColor}
-          getStatusColor={getStatusColor}
-          formatShiftTime={formatShiftTime}
-          hasAbsenceRequest={hasAbsenceRequest}
-          getAbsenceRequestsForDate={getAbsenceRequestsForDate}
-          getAbsenceStatusColor={getAbsenceStatusColor}
-        />
+        {showGrid ? (
+          <CalendarGrid
+            viewMode={viewMode}
+            calendarDays={generateCalendarDays()}
+            onDatePress={handleCustomDatePress}
+            onTodayPress={goToToday}
+            isToday={isToday}
+            isSameMonth={isSameMonth}
+            isStartDate={isStartDate}
+            isEndDate={isEndDate}
+            isDateInRange={isDateInRange}
+            getScheduleForDate={getScheduleForDate}
+            getShiftTypeColor={getShiftTypeColor}
+            getStatusColor={getStatusColor}
+            formatShiftTime={formatShiftTime}
+            hasAbsenceRequest={hasAbsenceRequest}
+            getAbsenceRequestsForDate={getAbsenceRequestsForDate}
+            getAbsenceStatusColor={getAbsenceStatusColor}
+            isCalendarVisible={isCalendarVisible}
+            selectedStaffName={selectedStaffName}
+            isAdminManager={isAdminManager}
+          />
+        ) : (
+          <>
+            <MonthShiftList
+              viewMode={viewMode}
+              schedules={filteredSchedules}
+              schedulesLoading={schedulesLoading}
+              handleShiftPress={handleShiftPress}
+              clockIn={clockIn}
+              clockOut={clockOut}
+              formatShiftTime={formatShiftTime}
+              getShiftTypeColor={getShiftTypeColor}
+              getStatusColor={getStatusColor}
+              currentDateRange={{ start: rangeStart, end: rangeEnd }}
+              showHeader={false}
+            />
+            <MyAbsenceList
+              absenceRequests={absenceRequests}
+              absenceLoading={absenceLoading}
+              formatRequestType={formatRequestType}
+              getAbsenceStatusColor={getAbsenceStatusColor}
+              onAbsencePress={handleAbsencePress}
+            />
+          </>
+        )}
 
         {/* Shifts Section */}
         <View style={styles.eventsSection}>
@@ -298,6 +406,15 @@ const CalendarScreen = () => {
         onDelete={deleteAbsenceRequest}
         formatRequestType={formatRequestType}
         getAbsenceStatusColor={getAbsenceStatusColor}
+      />
+      <AddShiftModal
+        visible={addShiftModalVisible}
+        staffList={staffList}
+        selectedStaffIds={selectedStaffIds}
+        onToggleStaff={toggleStaffSelection}
+        onConfirm={handleConfirmAddShift}
+        onCancel={() => setAddShiftModalVisible(false)}
+        loading={staffContactsLoading}
       />
     </SafeAreaView>
   );

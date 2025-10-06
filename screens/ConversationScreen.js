@@ -13,24 +13,37 @@ import {
   Modal,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useConversation } from "../hooks/useConversation";
+import { useRealConversation } from "../hooks/useRealConversation";
 import { useVoiceRecording } from "../hooks/useVoiceRecording";
 import { useVoicePlayback } from "../hooks/useVoicePlayback";
 import { useConversationImagePicker } from "../hooks/useConversationImagePicker";
 import { VoiceRecordingInterface } from "../components/conversation/VoiceRecordingInterface";
 import { VoicePreviewModal } from "../components/conversation/VoicePreviewModal";
+import { getAvatarUrl, getInitials } from "../utils/avatarUtils";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 const ConversationScreen = ({ route, navigation }) => {
-  const { conversationId, contactName } = route.params;
+  const { conversationId, contactName, contactAvatarUrl } = route.params;
 
-  // Main conversation logic
-  const { messages, sendMessage, sendImage, sendVoice } =
-    useConversation(conversationId);
+  // Get the full avatar URL
+  const avatarUrl = getAvatarUrl(contactAvatarUrl);
+
+  // Main conversation logic - use real database
+  const {
+    messages,
+    loading: messagesLoading,
+    error: messagesError,
+    sendMessage,
+    sendImage,
+    sendVoice,
+  } = useRealConversation(conversationId);
 
   // Voice recording hook
   const {
@@ -80,12 +93,32 @@ const ConversationScreen = ({ route, navigation }) => {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && flatListRef.current) {
+      // Use a longer timeout to ensure messages are rendered
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+        try {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        } catch (error) {
+          console.log("Auto-scroll error:", error);
+        }
+      }, 300);
     }
   }, [messages]);
+
+  // Auto-scroll when conversation first loads
+  useEffect(() => {
+    if (messages.length > 0 && !messagesLoading && flatListRef.current) {
+      setTimeout(() => {
+        try {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        } catch (error) {
+          console.log("Initial scroll error:", error);
+        }
+      }, 500);
+    }
+  }, [messagesLoading, messages.length]);
+
+
 
   // Animate multimedia buttons based on input
   useEffect(() => {
@@ -239,7 +272,7 @@ const ConversationScreen = ({ route, navigation }) => {
   };
 
   const renderMessage = ({ item }) => {
-    const isUser = item.isMyMessage || item.sender === "user";
+    const isUser = item.isMyMessage || item.sender === "me";
 
     if (item.type === "image") {
       return (
@@ -430,7 +463,19 @@ const ConversationScreen = ({ route, navigation }) => {
 
         <View style={styles.headerInfo}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{contactName.charAt(0)}</Text>
+            {avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatarImage}
+                onError={() => {
+                  console.log(`❌ Failed to load avatar for ${contactName}`);
+                }}
+              />
+            ) : (
+              <Text style={styles.avatarText}>
+                {getInitials(null, null, contactName)}
+              </Text>
+            )}
           </View>
           <View style={styles.contactInfo}>
             <Text style={styles.contactName}>{contactName}</Text>
@@ -438,21 +483,55 @@ const ConversationScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+        {/* Replace 3 dots with phone icon */}
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={() => {
+            // Replace with actual phone number from hotel_staff_personal_data
+            const phoneNumber = route.params?.phoneNumber || "123456789";
+            if (phoneNumber) {
+              Linking.openURL(`tel:${phoneNumber}`);
+            }
+          }}
+        >
+          <Ionicons name="call" size={22} color="#666" />
         </TouchableOpacity>
       </View>
 
       {/* Messages List */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id.toString()}
-        style={styles.messagesContainer}
-        contentContainerStyle={styles.messagesContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {messagesLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF5A5F" />
+          <Text style={styles.loadingText}>Loading messages...</Text>
+        </View>
+      ) : messagesError ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#FF5A5F" />
+          <Text style={styles.errorText}>Error loading messages</Text>
+          <Text style={styles.errorSubtext}>{messagesError}</Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+          onContentSizeChange={() => {
+            if (messages.length > 0) {
+              setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }, 100);
+            }
+          }}
+        />
+      )}
 
       {/* Voice Recording Interface */}
       <VoiceRecordingInterface
@@ -599,6 +678,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   contactInfo: {
     flex: 1,
@@ -903,6 +987,37 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 20,
     padding: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#8E8E93",
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FF5A5F",
+    textAlign: "center",
+  },
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#8E8E93",
+    textAlign: "center",
   },
 });
 

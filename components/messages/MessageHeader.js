@@ -4,9 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 
 /**
  * MessageHeader Component
- * Header with title, unread count badge, and action buttons
+ * Header with title, unread count badge, new conversation button, and mark all read action
  */
-const MessageHeader = ({ unreadCount, onSimulateMessage, onMarkAllRead }) => {
+const MessageHeader = ({ unreadCount, onMarkAllRead, onNewConversation }) => {
   return (
     <View style={styles.header}>
       <View style={styles.headerContent}>
@@ -20,13 +20,15 @@ const MessageHeader = ({ unreadCount, onSimulateMessage, onMarkAllRead }) => {
       <View style={styles.headerActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={onSimulateMessage}
+          onPress={onNewConversation}
         >
-          <Ionicons name="add-circle-outline" size={24} color="#FF5A5F" />
+          <Ionicons name="add" size={24} color="#FF5A5F" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={onMarkAllRead}>
-          <Ionicons name="checkmark-done" size={24} color="#FF5A5F" />
-        </TouchableOpacity>
+        {unreadCount > 0 && (
+          <TouchableOpacity style={styles.actionButton} onPress={onMarkAllRead}>
+            <Ionicons name="checkmark-done" size={24} color="#FF5A5F" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

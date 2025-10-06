@@ -18,6 +18,9 @@ export const CalendarGrid = ({
   hasAbsenceRequest,
   getAbsenceRequestsForDate,
   getAbsenceStatusColor,
+  isCalendarVisible, // add this prop
+  selectedStaffName, // new prop
+  isAdminManager, // new prop
 }) => {
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -53,6 +56,10 @@ export const CalendarGrid = ({
         request.start_date === dateStr && request.end_date === dateStr
     );
   };
+
+  if (!isCalendarVisible) {
+    return null;
+  }
 
   return (
     <View style={styles.calendarContainer}>
@@ -98,13 +105,19 @@ export const CalendarGrid = ({
                 schedule && styles.scheduleCell,
                 // Absence range styling
                 hasAbsence && styles.absenceCell,
-                isSingleDay && styles.absenceSingleDay,
+                isSingleDay && styles.absenceSingleDayContainer,
                 isAbsenceStart && !isSingleDay && styles.absenceRangeStart,
                 isAbsenceEnd && !isSingleDay && styles.absenceRangeEnd,
                 isAbsenceMiddle && styles.absenceRangeMiddle,
               ]}
               onPress={() => onDatePress(date)}
             >
+              {isSingleDay && (
+                <View
+                  style={styles.absenceSingleDayBorder}
+                  pointerEvents="none"
+                />
+              )}
               <Text
                 style={[
                   styles.dayText,
@@ -181,6 +194,15 @@ export const CalendarGrid = ({
           <Text style={styles.calendarTodayButtonText}>Today</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Selected staff name display for Admin/Manager */}
+      {isAdminManager && selectedStaffName && (
+        <View style={styles.selectedStaffContainer}>
+          <Text style={styles.selectedStaffText}>
+            Selected Staff: {selectedStaffName}
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -213,6 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     marginBottom: -70,
+    rowGap: 8,
   },
   weekGrid: {
     flexDirection: "row",
@@ -226,7 +249,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 0,
     marginBottom: 8,
   },
   weekDayCell: {
@@ -234,7 +257,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 0,
   },
   todayCell: {
     backgroundColor: "#FF5A5F",
@@ -249,6 +272,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
     minHeight: 40,
+    borderRadius: 8,
   },
   otherMonthCell: {
     opacity: 0.3,
@@ -303,6 +327,7 @@ const styles = StyleSheet.create({
   scheduleCell: {
     borderWidth: 2,
     borderColor: "#007AFF",
+    borderRadius: 8,
   },
   scheduleInfo: {
     position: "absolute",
@@ -354,18 +379,27 @@ const styles = StyleSheet.create({
   absenceCell: {
     backgroundColor: "rgba(255, 149, 0, 0.1)",
   },
-  absenceSingleDay: {
+  absenceSingleDayContainer: {
+    position: "relative",
+  },
+  absenceSingleDayBorder: {
+    position: "absolute",
+    top: 2,
+    left: 2,
+    right: 2,
+    bottom: 2,
     borderWidth: 2,
     borderColor: "#FF9500",
-    borderStyle: "dashed",
     borderRadius: 8,
+    backgroundColor: "#fff",
+    zIndex: 1,
   },
   absenceRangeStart: {
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderBottomWidth: 2,
     borderColor: "#FF9500",
-    borderStyle: "dashed",
+    borderStyle: "solid",
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
   },
@@ -373,14 +407,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderBottomWidth: 2,
     borderColor: "#FF9500",
-    borderStyle: "dashed",
+    borderStyle: "solid",
   },
   absenceRangeEnd: {
     borderTopWidth: 2,
     borderRightWidth: 2,
     borderBottomWidth: 2,
     borderColor: "#FF9500",
-    borderStyle: "dashed",
+    borderStyle: "solid",
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
   },
@@ -397,5 +431,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: "#fff",
+  },
+  // Selected staff styles
+  selectedStaffContainer: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    padding: 5,
+    borderRadius: 5,
+  },
+  selectedStaffText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#333",
   },
 });

@@ -29,6 +29,7 @@ export const formatTime = (timestamp) => {
  * @returns {string} Initials (e.g., "John Doe" -> "JD")
  */
 export const getAvatarInitials = (name) => {
+  if (!name || typeof name !== "string") return "";
   return name
     .split(" ")
     .map((n) => n[0])

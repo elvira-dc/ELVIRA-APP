@@ -49,24 +49,23 @@ export const useStaffData = (userId) => {
         setError(null);
 
         // Fetch hotel staff data
-        // Try to match user email with staff records
+        // Try to match user id or email with staff records
         const { data: staffList, error: staffError } = await supabase
           .from("hotel_staff")
           .select("*");
 
         let staffInfo = null;
         if (staffList && staffList.length > 0) {
-          // Try to find staff record by user email or other matching criteria
-          // For demo, we'll take the first active record
+          // Try to find staff record by user id or email
           staffInfo =
+            staffList.find(
+              (staff) =>
+                staff.id === userId ||
+                staff.staff_id === userId ||
+                staff.email === userId
+            ) ||
             staffList.find((staff) => staff.status === "active") ||
-            staffList[0];
-          console.log("🎯 Matched staff record:", {
-            id: staffInfo.id,
-            employee_id: staffInfo.employee_id,
-            position: staffInfo.position,
-            department: staffInfo.department,
-          });
+            staffList[0];;
         } else {
           // Use demo data for development
           console.log("📝 Using demo staff data");
@@ -81,7 +80,6 @@ export const useStaffData = (userId) => {
 
         // Fetch personal data if we have staff data
         if (staffInfo?.id) {
-          console.log("🔍 Fetching personal data for staff_id:", staffInfo.id);
 
           const { data: personalInfo, error: personalError } = await supabase
             .from("hotel_staff_personal_data")
@@ -104,7 +102,7 @@ export const useStaffData = (userId) => {
               });
             }
           } else {
-            console.log("✅ Found personal data:", personalInfo);
+
             setPersonalData(personalInfo);
           }
         }

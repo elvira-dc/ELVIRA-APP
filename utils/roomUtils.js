@@ -18,12 +18,12 @@ export const getBedIconColor = (status) => {
  * @returns {string} Color hex code
  */
 export const getStatusIconColor = (status) => {
-  switch (status) {
-    case "Clean":
+  switch ((status || "").toUpperCase().replace(/ /g, "_")) {
+    case "CLEAN":
       return "#28A745"; // Green
-    case "Not Clean":
+    case "NOT_CLEAN":
       return "#DC3545"; // Red
-    case "In Progress":
+    case "IN_PROGRESS":
       return "#FFC107"; // Yellow
     default:
       return "transparent"; // No icon for DND or default
@@ -36,15 +36,15 @@ export const getStatusIconColor = (status) => {
  * @returns {string|null} Ionicons icon name or null
  */
 export const getStatusIcon = (status) => {
-  switch (status) {
-    case "Clean":
+  switch ((status || "").toUpperCase().replace(/ /g, "_")) {
+    case "CLEAN":
       return "checkmark-circle";
-    case "Not Clean":
+    case "NOT_CLEAN":
       return "close-circle";
-    case "In Progress":
+    case "IN_PROGRESS":
       return "time";
     default:
-      return null; // No icon for DND
+      return null;
   }
 };
 

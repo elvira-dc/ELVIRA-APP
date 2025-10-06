@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { formatTime, getAvatarInitials } from "../../utils/messageUtils";
+import { getAvatarUrl } from "../../utils/avatarUtils";
 
 /**
  * ConversationItem Component
@@ -16,17 +17,34 @@ const ConversationItem = ({ message, onPress }) => {
     // Navigate to conversation
     navigation.navigate("Conversation", {
       conversationId: message.id,
-      contactName: message.name,
+      contactName: message.contactName || message.name, // Handle both formats
+      contactAvatarUrl: message.avatar_url, // Pass avatar URL to conversation
     });
   };
+
+  // Get the full avatar URL
+  const avatarUrl = getAvatarUrl(message.avatar_url);
+  const displayName = message.name || "";
+  const computedInitials =
+    message.initials || getAvatarInitials(displayName || "");
+
+
 
   return (
     <TouchableOpacity style={styles.messageItem} onPress={handlePress}>
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {getAvatarInitials(message.name)}
-          </Text>
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={styles.avatarImage}
+              onError={() => {
+                console.log(`❌ Failed to load avatar for ${message.name}`);
+              }}
+            />
+          ) : (
+            <Text style={styles.avatarText}>{computedInitials}</Text>
+          )}
         </View>
       </View>
       <View style={styles.messageContent}>
@@ -82,6 +100,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#FF5A5F",
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   messageContent: {
     flex: 1,

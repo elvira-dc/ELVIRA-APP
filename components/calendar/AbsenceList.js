@@ -66,9 +66,9 @@ export const AbsenceList = ({
               const endDate = new Date(request.end_date);
               const formatDate = (date) =>
                 date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                  year: "2-digit",
                 });
 
               if (startDate.toDateString() === endDate.toDateString()) {

@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import { areNotificationsEnabled } from "./notificationPreferences";
 
 /**
  * Notification utility functions for the Elvira Hotel app
@@ -15,6 +16,14 @@ export const notifyAbsenceRequestSubmitted = async (
   endDate,
   type
 ) => {
+  // Check if notifications are enabled
+  if (!(await areNotificationsEnabled())) {
+    console.log(
+      "🔕 Notifications disabled, skipping absence request notification"
+    );
+    return;
+  }
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Absence Request Submitted",
@@ -32,6 +41,12 @@ export const notifyAbsenceRequestSubmitted = async (
  * @param {string} location - Location of the shift
  */
 export const notifyShiftReminder = async (shiftTime, location = "Hotel") => {
+  // Check if notifications are enabled
+  if (!(await areNotificationsEnabled())) {
+    console.log("🔕 Notifications disabled, skipping shift reminder");
+    return;
+  }
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Shift Reminder",
@@ -71,6 +86,12 @@ export const notifyRoomStatusChange = async (
  * @param {string} messagePreview - Preview of the message
  */
 export const notifyNewMessage = async (senderName, messagePreview) => {
+  // Check if notifications are enabled
+  if (!(await areNotificationsEnabled())) {
+    console.log("🔕 Notifications disabled, skipping new message notification");
+    return;
+  }
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: `New message from ${senderName}`,

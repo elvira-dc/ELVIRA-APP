@@ -9,17 +9,36 @@ import StatusIndicator from "./StatusIndicator";
  * @param {object} room - Room data object
  * @param {function} onPress - Optional onPress handler
  */
-const RoomCard = ({ room, onPress }) => {
+const RoomCard = ({ room, onPress, onLongPress }) => {
+  // DND status: true/false or string
+  const isDND =
+    room.dnd_status === true ||
+    room.dnd_status === "true" ||
+    room.dnd_status === "DND";
+  // Only show cleaning status icon in the top right if present and not DND
+  let statusIcon = null;
+  if (!isDND && room.cleaning_status) {
+    statusIcon = <StatusIndicator status={room.cleaning_status} />;
+  }
   return (
-    <TouchableOpacity style={styles.container} onPress={() => onPress?.(room)}>
-      {/* Status indicator icon in top right corner */}
-      <StatusIndicator status={room.status} />
+    <TouchableOpacity
+      style={styles.container}
+      onPress={() => onPress?.(room)}
+      onLongPress={() => onLongPress?.(room)}
+      delayLongPress={350}
+    >
+      {/* Cleaning status indicator in top right corner if available and not DND */}
+      {statusIcon}
 
-      {/* Bed icon with status-based color */}
-      <Ionicons name="bed" size={24} color={getBedIconColor(room.status)} />
+      {/* Bed icon with DND-based color (red if DND, gray otherwise) */}
+      <Ionicons
+        name="bed"
+        size={24}
+        color={getBedIconColor(isDND ? "DND" : undefined)}
+      />
 
       {/* Room number */}
-      <Text style={styles.roomNumber}>{room.number}</Text>
+      <Text style={styles.roomNumber}>{room.room_number}</Text>
     </TouchableOpacity>
   );
 };
@@ -40,6 +59,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  cleaningStatus: {
+    fontSize: 10,
+    color: "#888",
+    marginTop: 2,
+    textTransform: "capitalize",
   },
   roomNumber: {
     fontSize: 12,

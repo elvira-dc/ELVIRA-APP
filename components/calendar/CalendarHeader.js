@@ -1,51 +1,91 @@
+// src/components/CalendarHeader.js
+
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export const CalendarHeader = ({
-  viewMode,
-  setViewMode,
   getDisplayTitle,
   navigatePrevious,
   navigateNext,
+  isCalendarVisible, // new prop
+  onToggleCalendarVisibility, // new prop
+  hotel_staff, // add this prop
+  onPeoplePress, // add this prop
+  staffList, // new prop: array of staff
+  selectedStaffId, // new prop: selected staff id
+  onStaffSelect, // new prop: handler for selection
 }) => {
+  // Log authenticated user info
+  console.log("Authenticated user:", hotel_staff);
+
+  // Check if user is Hotel Admin and Manager
+  const isAdminManager =
+    hotel_staff?.position === "Hotel Admin" &&
+    hotel_staff?.department === "Manager";
+
+  if (!isAdminManager) {
+    console.log(
+      "Admin icons not visible. Reason:",
+      "position =",
+      hotel_staff?.position,
+      "department =",
+      hotel_staff?.department
+    );
+  }
+
   return (
     <View style={styles.header}>
       <View style={styles.headerTop}>
-        <Text style={styles.headerTitle}>Calendar</Text>
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              viewMode === "month" && styles.activeToggle,
-            ]}
-            onPress={() => setViewMode("month")}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={styles.headerTitle}>Calendar</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+            }}
           >
-            <Text
-              style={[
-                styles.toggleText,
-                viewMode === "month" && styles.activeToggleText,
-              ]}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onToggleCalendarVisibility}
+              accessibilityLabel={
+                isCalendarVisible ? "Hide Calendar" : "Show Calendar"
+              }
             >
-              Month
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              viewMode === "week" && styles.activeToggle,
-            ]}
-            onPress={() => setViewMode("week")}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                viewMode === "week" && styles.activeToggleText,
-              ]}
-            >
-              Week
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name={isCalendarVisible ? "eye-outline" : "eye-off-outline"}
+                size={26}
+                color="#FF5A5F"
+              />
+            </TouchableOpacity>
+            {isAdminManager && (
+              <>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => {
+                    /* TODO: filter logic */
+                  }}
+                  accessibilityLabel="Filter"
+                >
+                  <Ionicons name="options-outline" size={26} color="#FF5A5F" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={onPeoplePress}
+                  accessibilityLabel="People"
+                >
+                  <Ionicons name="people-outline" size={26} color="#FF5A5F" />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </View>
       </View>
 
@@ -71,37 +111,12 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f0f0f0",
   },
   headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 15,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#2c3e50",
-  },
-  viewToggle: {
-    flexDirection: "row",
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    padding: 2,
-  },
-  toggleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  activeToggle: {
-    backgroundColor: "#FF5A5F",
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-  },
-  activeToggleText: {
-    color: "#fff",
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "#484848",
   },
   navigationRow: {
     flexDirection: "row",
@@ -119,5 +134,11 @@ const styles = StyleSheet.create({
     color: "#2c3e50",
     flex: 1,
     textAlign: "center",
+  },
+  iconButton: {
+    padding: 6,
+    borderRadius: 8,
+
+    marginLeft: 4,
   },
 });

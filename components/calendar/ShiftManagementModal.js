@@ -1,3 +1,6 @@
+// Suggested folder location: components/modals/ (if you have a dedicated modals folder)
+// Suggested script name: ShiftManagementModal.js (if you want to be more specific)
+
 import React, { useState } from "react";
 import {
   View,
@@ -10,22 +13,32 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+// ShiftManagementModal component
 export const ShiftManagementModal = ({
-  visible,
-  onClose,
-  schedule,
-  onClockIn,
-  onClockOut,
-  onConfirm,
-  onRequestChange,
-  formatShiftTime,
-  getShiftTypeColor,
-  getStatusColor,
+  visible, // boolean: visibility of the modal
+  onClose, // function: to close the modal
+  schedule, // object: schedule object containing shift details
+  onClockIn, // function: to handle clock in action
+  onClockOut, // function: to handle clock out action
+  onConfirm, // function: to handle shift confirmation action
+  onRequestChange, // function: to handle shift change request action
+  formatShiftTime, // function: to format shift start and end times
+  getShiftTypeColor, // function: to get color based on shift type
+  getStatusColor, // function: to get color based on shift status
+  // Suggested to move to a separate StaffSelection component
+  staffList, // array of staff objects {id, firstName, lastName}
+  selectedStaffIds, // array of selected staff ids
+  onToggleStaff, // function: to toggle staff selection
+  onCancel, // function: to handle cancel action
+  loading, // boolean: loading state
 }) => {
+  // Local state for action loading
   const [actionLoading, setActionLoading] = useState(false);
 
+  // If schedule is not available, return null
   if (!schedule) return null;
 
+  // Function to handle clock in action
   const handleClockIn = async () => {
     setActionLoading(true);
     try {
@@ -43,6 +56,7 @@ export const ShiftManagementModal = ({
     }
   };
 
+  // Function to handle clock out action
   const handleClockOut = async () => {
     setActionLoading(true);
     try {
@@ -60,6 +74,7 @@ export const ShiftManagementModal = ({
     }
   };
 
+  // Function to handle shift confirmation action
   const handleConfirm = async () => {
     setActionLoading(true);
     try {
@@ -77,6 +92,7 @@ export const ShiftManagementModal = ({
     }
   };
 
+  // Function to handle shift change request action
   const handleRequestChange = () => {
     Alert.alert("Request Change", "What would you like to request?", [
       { text: "Cancel", style: "cancel" },
@@ -104,6 +120,7 @@ export const ShiftManagementModal = ({
     ]);
   };
 
+  // Check if the schedule date is today
   const isToday = (() => {
     // Parse schedule date safely and compare with today
     const [year, month, day] = schedule.schedule_date.split("-");
@@ -120,15 +137,22 @@ export const ShiftManagementModal = ({
       scheduleDate.getDate() === today.getDate()
     );
   })();
+
+  // Check if clock in action is allowed
   const canClockIn =
     schedule.status === "SCHEDULED" && !schedule.actual_start_time && isToday;
+
+  // Check if clock out action is allowed
   const canClockOut =
     schedule.status === "CONFIRMED" &&
     schedule.actual_start_time &&
     !schedule.actual_end_time &&
     isToday;
+
+  // Check if confirm action is allowed
   const canConfirm = schedule.status === "SCHEDULED" && !schedule.is_confirmed;
 
+  // Render the modal
   return (
     <Modal
       visible={visible}
@@ -327,6 +351,7 @@ export const ShiftManagementModal = ({
   );
 };
 
+// Styles for the component
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
